@@ -49,7 +49,7 @@ class Deck(object):
     def shuffle(self, num=1):
         length = len(self.cards)
         for _ in range(num):
-            # This is the fisher yates shuffle algorithm
+            # Shuffle with random
             for i in range(length-1, 0, -1):
                 randi = random.randint(0, i)
                 if i == randi:
@@ -68,7 +68,7 @@ class Dealer(object):
         self.name = name
         self.hand = []
 
-     # Draw n number of cards from a deck
+    # Draw n number of cards from a deck
     # Returns true in n cards are drawn, false if less then that
     def draw(self, deck, num=1):
         for _ in range(num):
@@ -79,8 +79,8 @@ class Dealer(object):
                 return False
         return True
 
-    # Display all the cards on the players hand
-    def showHand(self):
+    # Display all the cards drawn
+    def showCards(self):
         print("{} dealt cards: {}".format(self.name, self.hand))
         return self
 
@@ -98,4 +98,4 @@ myDeck.shuffle()
 
 wilma = Dealer("Wilma")
 wilma.draw(myDeck, 5)
-wilma.showHand()
+wilma.showCards()
