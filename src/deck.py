@@ -66,7 +66,7 @@ class Deck(object):
 class Dealer(object):
     def __init__(self, name):
         self.name = name
-        self.hand = []
+        self.cardsTable = []
 
     # Draw n number of cards from a deck
     # Returns true in n cards are drawn, false if less then that
@@ -74,18 +74,18 @@ class Dealer(object):
         for _ in range(num):
             card = deck.deal()
             if card:
-                self.hand.append(card)
+                self.cardsTable.append(card)
             else: 
                 return False
         return True
 
     # Display all the cards drawn
     def showCards(self):
-        print("{} dealt cards: {}".format(self.name, self.hand))
+        print("{} dealt cards: {}".format(self.name, self.cardsTable))
         return self
 
     def discard(self):
-        return self.hand.pop()
+        return self.cardsTable.pop()
 
 # Test making a Card
 # card = Card('Spades', 6)
