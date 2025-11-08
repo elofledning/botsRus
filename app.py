@@ -30,6 +30,8 @@ def run_tournament():
             'winner_id': entry['winner_id'],
             'winner_name': bot_names.get(entry['winner_id'], entry['winner_id']),
             'winning_value': entry.get('winning_value'),
+            'winner_hand': entry.get('winner_hand', []),
+            'table_cards': entry.get('table_cards', []),
         })
 
     payload = {

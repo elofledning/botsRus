@@ -25,6 +25,21 @@ class Card:
         name = {11: 'Jack', 12: 'Queen', 13: 'King', 14: 'Ace'}.get(self.rank, str(self.rank))
         return f"{name} {self.suit.value}"
 
+    def to_short_string(self) -> str:
+        """Returns a compact representation like 'A♠' for web display"""
+        rank_map = {
+            14: 'A', 13: 'K', 12: 'Q', 11: 'J',
+            10: '10', 9: '9', 8: '8', 7: '7',
+            6: '6', 5: '5', 4: '4', 3: '3', 2: '2'
+        }
+        suit_map = {
+            Suit.HEARTS: '♥',
+            Suit.DIAMONDS: '♦',
+            Suit.CLUBS: '♣',
+            Suit.SPADES: '♠'
+        }
+        return f"{rank_map[self.rank]}{suit_map[self.suit]}"
+
     def __repr__(self) -> str:
         return f"Card(suit={self.suit}, rank={self.rank})"
 

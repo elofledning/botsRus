@@ -55,12 +55,14 @@ class Table:
             # choose a winner among best_players randomly
             winner = rng.choice(best_players)
             scores[winner.id] += 1
-            # record history per game (index, winner id)
+            # record history per game (index, winner id, cards)
             history.append({
                 'game': game_index,
                 'winner_id': winner.id,
                 'winner_name': winner.name,
                 'winning_value': best_value,
+                'winner_hand': [card.to_short_string() for card in winner.hand],
+                'table_cards': [card.to_short_string() for card in self.dealer.community]
             })
         return {
             'scores': scores,
