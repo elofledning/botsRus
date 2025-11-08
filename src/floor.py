@@ -10,9 +10,10 @@ class FloorManager:
     def __init__(self, roster: BotRoster):
         self.roster = roster
 
-    def run_tournament(self, players_per_table: int = 6, games_per_table: int = 1000) -> Dict[str, int]:
+    def run_tournament(self, players_per_table: int = 6, games_per_table: int = 1000):
         bots = self.roster.all()
         ranking: Dict[str, int] = {b.id: 0 for b in bots}
+        overall_history: List[Dict] = []
 
         # partition bots into tables
         for i in range(0, len(bots), players_per_table):
@@ -20,9 +21,16 @@ class FloorManager:
             if len(table_bots) < 2:
                 continue
             table = Table(table_bots, games_to_play=games_per_table)
-            scores = table.run()
-            # award points: winner per hand already tallied; aggregate into ranking
+            result = table.run()
+            scores = result['scores']
+            history = result['history']
+            # award points: aggregate into ranking
             for bot_id, pts in scores.items():
                 ranking[bot_id] = ranking.get(bot_id, 0) + pts
+            # attach table-specific history
+            overall_history.extend(history)
 
-        return ranking
+        return {
+            'scores': ranking,
+            'history': overall_history,
+        }

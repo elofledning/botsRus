@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Bot Tournament Results</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            margin-top: 20px;
+            height: 400px;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .timestamp {
+            text-align: right;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Poker Bot Tournament Dashboard</h1>
+        
+        <div class="controls">
+            <button onclick="runNewTournament()">Run New Tournament</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Top Bot</h3>
+                <div class="stat-value" id="topBot">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Average Points</h3>
+                <div class="stat-value" id="avgPoints">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Games</h3>
+                <div class="stat-value">2000</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div id="resultsChart3d" style="width:100%; height:420px;"></div>
+        </div>
+
+        <h3 style="margin-top:24px;">Game timeline (winner per game)</h3>
+        <div class="chart-container" style="height:200px;">
+            <div id="timelineChart" style="width:100%; height:200px;"></div>
+        </div>
+
+        <h3 style="margin-top:18px;">Per-game outcomes</h3>
+        <div style="max-height:200px; overflow:auto; background:#fff; padding:10px; border-radius:6px;">
+            <ul id="gameList" style="margin:0; padding-left:18px;"></ul>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        // Plotly-based 3D scatter and timeline
+
+        function init3DChart(data) {
+            // Build cumulative score matrix: rows = games, cols = bots
+            const botNames = data.scores.map(s => s.name);
+            const numBots = botNames.length;
+            const numGames = data.history.length;
+
+            // map name to column index
+            const botIndex = {};
+            botNames.forEach((n, i) => botIndex[n] = i);
+
+            // initialize zero matrix (numGames x numBots)
+            const z = Array.from({length: numGames}, () => Array(numBots).fill(0));
+
+            // running totals per bot
+            const running = Array(numBots).fill(0);
+
+            // iterate games in chronological order and fill cumulative values
+            data.history.forEach((h, gameIdx) => {
+                const winnerCol = botIndex[h.winner_name];
+                if (winnerCol !== undefined) {
+                    running[winnerCol] += 1;
+                }
+                // copy running totals into row
+                for (let c = 0; c < numBots; c++) {
+                    z[gameIdx][c] = running[c];
+                }
+            });
+
+            // surface trace: z is 2D array shape [y=numGames][x=numBots]
+            const trace = {
+                z: z,
+                type: 'surface',
+                colorscale: 'Viridis',
+                colorbar: {title: 'Cumulative Points'},
+            };
+
+            const layout = {
+                scene: {
+                    xaxis: {title: 'Bot', tickvals: botNames.map((_,i)=>i), ticktext: botNames},
+                    yaxis: {title: 'Game #'},
+                    zaxis: {title: 'Cumulative Points'},
+                },
+                margin: {l:0, r:0, b:0, t:40},
+                height: 420,
+                title: 'Cumulative Score over Time (3D Surface)'
+            };
+
+            Plotly.newPlot('resultsChart3d', [trace], layout, {responsive: true});
+        }
+
+        function initTimeline(data) {
+            // Map winner names to indices for plotting
+            const names = Array.from(new Set(data.history.map(h => h.winner_name)));
+            const nameIndex = {};
+            names.forEach((n,i)=>nameIndex[n]=i);
+
+            const x = data.history.map(h => h.game);
+            const y = data.history.map(h => nameIndex[h.winner_name]);
+
+            const trace = {
+                x: x,
+                y: y,
+                mode: 'lines+markers',
+                line: {shape: 'hv'},
+                type: 'scatter',
+            };
+
+            const layout = {
+                height: 200,
+                margin: {l:40, r:10, b:40, t:10},
+                yaxis: {tickvals: names.map((_,i)=>i), ticktext: names},
+                xaxis: {title: 'Game #'},
+            };
+
+            Plotly.newPlot('timelineChart', [trace], layout, {responsive:true});
+        }
+
+        function updateStats(data) {
+            // Update top bot
+            const topBot = data.scores[0];
+            document.getElementById('topBot').textContent = `${topBot.name} (${topBot.points})`;
+
+            // Update average points
+            const avgPoints = data.scores.reduce((sum, curr) => sum + curr.points, 0) / data.scores.length;
+            document.getElementById('avgPoints').textContent = avgPoints.toFixed(1);
+
+            // Update timestamp
+            const timestamp = new Date(data.timestamp);
+            document.getElementById('timestamp').textContent = `Last updated: ${timestamp.toLocaleString()}`;
+        }
+
+        function populateGameList(data) {
+            const ul = document.getElementById('gameList');
+            ul.innerHTML = '';
+            data.history.forEach(h => {
+                const li = document.createElement('li');
+                li.textContent = `Game ${h.game}: ${h.winner_name} (value ${h.winning_value})`;
+                ul.appendChild(li);
+            });
+        }
+
+        async function loadLatestTournament() {
+            const response = await fetch('/api/tournament/latest');
+            const data = await response.json();
+            init3DChart(data);
+            initTimeline(data);
+            updateStats(data);
+            populateGameList(data);
+        }
+
+        async function runNewTournament() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Running...';
+
+            try {
+                const response = await fetch('/api/tournament/new');
+                const data = await response.json();
+                init3DChart(data);
+                initTimeline(data);
+                updateStats(data);
+                populateGameList(data);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Run New Tournament';
+            }
+        }
+
+        // Initial load
+        loadLatestTournament();
+    </script>
+</body>
+</html>

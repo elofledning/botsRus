@@ -20,12 +20,13 @@ class Table:
         self.dealer = dealer or Dealer(Deck())
         self.games_to_play = games_to_play
 
-    def run(self, num_games: Optional[int] = None, rng: Optional[random.Random] = None) -> Dict[str, int]:
+    def run(self, num_games: Optional[int] = None, rng: Optional[random.Random] = None):
         rng = rng or random.Random()
         games = num_games or self.games_to_play
         scores: Dict[str, int] = {p.id: 0 for p in self.players}
+        history: List[Dict] = []
 
-        for _ in range(games):
+        for game_index in range(games):
             # prepare deck and players
             self.dealer.deck.reset()
             self.dealer.deck.shuffle()
@@ -54,5 +55,14 @@ class Table:
             # choose a winner among best_players randomly
             winner = rng.choice(best_players)
             scores[winner.id] += 1
-
-        return scores
+            # record history per game (index, winner id)
+            history.append({
+                'game': game_index,
+                'winner_id': winner.id,
+                'winner_name': winner.name,
+                'winning_value': best_value,
+            })
+        return {
+            'scores': scores,
+            'history': history,
+        }
